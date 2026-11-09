@@ -74,8 +74,9 @@ def _assemble(user_scores: np.ndarray, users: pd.Index, customers: pd.Index, pop
     return _topk(S, customers, items, k)
 
 
-def item_knn(ft, cutoff, customers, candidates, k, n_neighbors: int = 50, tau_days: float = 180.0,
-             shrink: float = 10.0):
+def item_knn(ft, cutoff, customers, candidates, k, n_neighbors: int = 200, tau_days: float = 180.0,
+             shrink: float = 50.0):
+    # defaults tuned on validation cutoffs (scripts/tune_cf.py), see reports/tune_item_knn.csv
     items = pd.Index(candidates)
     X, users = interactions(ft, cutoff, items, tau_days)
     Xb = X.copy()
@@ -96,8 +97,10 @@ def item_knn(ft, cutoff, customers, candidates, k, n_neighbors: int = 50, tau_da
     return _assemble(us, users, pd.Index(customers), _popularity(ft, cutoff, items), items, k)
 
 
-def als(ft, cutoff, customers, candidates, k, factors: int = 64, reg: float = 0.05, iters: int = 20,
-        alpha: float = 20.0, tau_days: float = 180.0, seed: int = 0):
+def als(ft, cutoff, customers, candidates, k, factors: int = 128, reg: float = 0.01, iters: int = 20,
+        alpha: float = 50.0, tau_days: float = 90.0, seed: int = 0):
+    # defaults tuned on validation cutoffs (scripts/tune_cf.py), see reports/tune_als.csv;
+    # alpha=50 is the edge of the grid -> worth extending
     from implicit.als import AlternatingLeastSquares
     from implicit.nearest_neighbours import bm25_weight
 
