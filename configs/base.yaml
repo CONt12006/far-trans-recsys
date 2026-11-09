@@ -14,6 +14,7 @@ split:
 
 eval:
   ks: [1, 5, 10]
+  backtest_n: 12            # untrained methods are also evaluated on the last N cutoffs (mean ± std)
   return_horizon_days: 60   # horizon for "would the customer have earned money" metric
 
 risk:
