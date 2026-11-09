@@ -83,10 +83,14 @@ def repeat_popularity(ft, cutoff, customers, candidates, k, days=30):
     return allr[allr["rank"] <= k].sort_values(["customerID", "rank"]).reset_index(drop=True)
 
 
+from .cf import als, item_knn  # noqa: E402
+
 BASELINES = {
     "random": random_rec,
     "pop_30d": popularity,
     "pop_segment_90d": segment_popularity,
     "momentum_90d": momentum,
     "repeat_then_pop": repeat_popularity,
+    "item_knn": item_knn,
+    "als": als,
 }
