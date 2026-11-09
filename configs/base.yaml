@@ -1,0 +1,28 @@
+data:
+  raw_dir: data/raw/FAR-Trans
+  processed_dir: data/processed
+
+split:
+  # cutoff dates: features only from (-inf, cutoff), target from [cutoff, cutoff + target_days)
+  first_cutoff: "2020-01-01"
+  last_cutoff: "2022-09-01"
+  freq: MS            # monthly, first day of month
+  target_days: 60
+  n_valid: 1          # cutoffs right before test
+  n_test: 1           # last cutoffs
+  min_target_buys: 1  # customers with no buys in the target window are excluded from evaluation
+
+eval:
+  ks: [1, 5, 10]
+  return_horizon_days: 60   # horizon for "would the customer have earned money" metric
+
+risk:
+  # annualised volatility thresholds -> SRRI-like level 1..7
+  srri_bounds: [0.005, 0.02, 0.05, 0.10, 0.15, 0.25]
+  vol_window_days: 365
+  max_level:
+    Conservative: 3
+    Income: 4
+    Balanced: 5
+    Aggressive: 7
+    Not_Available: 7
