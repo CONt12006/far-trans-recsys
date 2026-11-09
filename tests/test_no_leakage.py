@@ -40,6 +40,20 @@ def test_recs_identical_on_truncated_data(ft, name):
     pd.testing.assert_frame_equal(full.reset_index(drop=True), trunc.reset_index(drop=True))
 
 
+def test_features_identical_on_truncated_data(ft):
+    """Stage-2 features (incl. candidate generation) must not change when the future is deleted."""
+    import yaml
+
+    from farrec.features import build_frame
+
+    cfg = yaml.safe_load(open(ROOT / "configs/base.yaml"))
+    sl = make_slice(ft, CUT, 60)
+    custs = sl.eval_customers[:300]
+    full = build_frame(ft, CUT, custs, sl.candidates, cfg)
+    trunc = build_frame(_truncate(ft, CUT), CUT, custs, sl.candidates, cfg)
+    pd.testing.assert_frame_equal(full, trunc, check_exact=False, rtol=1e-5)
+
+
 def test_target_windows_do_not_overlap_eval():
     cuts = all_cutoffs("2020-01-01", "2022-09-01")
     sp = assign_splits(cuts, 60)
