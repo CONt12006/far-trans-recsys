@@ -109,7 +109,9 @@ def als(ft, cutoff, customers, candidates, k, factors: int = 128, reg: float = 0
     Xw = bm25_weight(X, K1=100, B=0.8).tocsr().astype(np.float32)
     model = AlternatingLeastSquares(factors=factors, regularization=reg, iterations=iters,
                                     alpha=alpha, random_state=seed, calculate_training_loss=False)
-    model.fit(Xw, show_progress=False)
+    from threadpoolctl import threadpool_limits
+    with threadpool_limits(1, "blas"):
+        model.fit(Xw, show_progress=False)
     uf = np.asarray(model.user_factors)
     itf = np.asarray(model.item_factors)
     pos = users.get_indexer(customers)
