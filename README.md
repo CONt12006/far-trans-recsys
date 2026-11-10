@@ -1,90 +1,95 @@
-# FAR-Trans: рекомендации инвестиционных продуктов
+<p align="center">
+  <a href="README.md"><img alt="English" src="https://img.shields.io/badge/English-1f6feb?style=for-the-badge"></a>
+  <a href="README.ru.md"><img alt="Русский" src="https://img.shields.io/badge/%D0%A0%D1%83%D1%81%D1%81%D0%BA%D0%B8%D0%B9-555555?style=for-the-badge"></a>
+</p>
 
-Для клиента на дату `t` ранжируем доступные активы (акции, облигации, фонды) так, чтобы наверху были те,
-что он купит в ближайшие 60 дней, при этом не нарушая его риск-профиль. Качество меряем тремя группами
-метрик: угадывание поведения, финансовый результат, пригодность (suitability).
+# FAR-Trans: investment product recommendations
 
-Данные: [FAR-Trans](https://doi.org/10.5525/gla.researchdata.1658) (Sanz-Cruzado, Droukas, McCreadie, 2024),
-реальные сделки клиентов европейского банка 2018–2022, CC BY 4.0. Короткий отчёт для бизнеса: [docs/report.md](docs/report.md).
+For a customer at date `t`, we rank the available assets (stocks, bonds, funds) so that the ones they will buy
+in the next 60 days come first, without violating their risk profile. Quality is measured with three groups
+of metrics: behavioural accuracy, financial outcome, and suitability.
 
-## Главное
+Data: [FAR-Trans](https://doi.org/10.5525/gla.researchdata.1658) (Sanz-Cruzado, Droukas, McCreadie, 2024),
+real customer trades of a European bank, 2018–2022, CC BY 4.0. Short business report (in Russian): [docs/report.md](docs/report.md).
 
-* **Двухуровневая модель** (кандидаты из CF → LightGBM lambdarank) лучше всех бейзлайнов на каждом из 6 тестовых
-  срезов: NDCG@10 **0.604** против 0.580, на новых для клиента активах **0.287** против 0.269.
-* **По протоколу авторов датасета** Item-kNN даёт nDCG@10 0.353 против 0.340 у лучшего метода статьи (LightGCN),
-  ранкер на подмножестве дат 0.345 против 0.335 у kNN и 0.280 у популярности.
-* **Соответствие риск-профилю стоит дорого:** клиенты в основном покупают то, что их профилю не подходит,
-  полный запрет неподходящих рекомендаций снижает NDCG на ~77%. Кривая компромисса показывает цену каждой политики.
-* **«Рекомендовать то, что вырастет» не работает:** популярность не предсказывает доходность, а momentum
-  развернулся в 2022 году. Честный отрицательный результат.
-* **Найдено и исправлено:** профили клиентов, заполненные задним числом (утечка), снапшот портфелей
-  под видом покупок, приостановленные акции, которые выглядели самыми безопасными.
+## Highlights
 
-## Структура
+* **Two-stage model** (CF candidates → LightGBM lambdarank) beats every baseline on each of the 6 test
+  cutoffs: NDCG@10 **0.604** vs 0.580, on assets new to the customer **0.287** vs 0.269.
+* **Under the dataset authors' protocol** Item-kNN reaches nDCG@10 0.353 vs 0.340 for the paper's best method (LightGCN);
+  the ranker on a subset of dates gets 0.345 vs 0.335 for kNN and 0.280 for popularity.
+* **Suitability is expensive:** customers mostly buy assets that do not fit their profile, so fully banning
+  unsuitable recommendations cuts NDCG by ~77%. A trade-off curve shows the cost of each policy.
+* **"Recommend what will go up" does not work:** popularity does not predict returns, and momentum
+  reversed in 2022. An honest negative result.
+* **Found and fixed:** backfilled customer profiles (leakage), a portfolio snapshot disguised as purchases,
+  suspended stocks that looked like the safest assets.
+
+## Structure
 
 ```
-configs/base.yaml           даты срезов, окна, шкала и политики риска
-src/farrec/data.py          загрузка, очистка, as-of выборки
-src/farrec/portfolio.py     восстановление портфелей по сделкам
-src/farrec/splits.py        срезы по времени, таргет, train/valid/test
-src/farrec/risk.py          уровни риска активов 1..7 (по волатильности, как SRRI)
+configs/base.yaml           cutoff dates, windows, risk scale and policies
+src/farrec/data.py          loading, cleaning, as-of selections
+src/farrec/portfolio.py     portfolio reconstruction from trades
+src/farrec/splits.py        time cutoffs, target, train/valid/test
+src/farrec/risk.py          asset risk levels 1..7 (by volatility, SRRI-style)
 src/farrec/metrics.py       ranking / financial / suitability
-src/farrec/baselines.py     простые бейзлайны
-src/farrec/cf.py            Item-kNN и ALS
-src/farrec/candidates.py    уровень 1: генерация кандидатов
-src/farrec/features.py      признаки клиента, актива и пары
-src/farrec/ranker.py        уровень 2: LightGBM / CatBoost ранкер
-src/farrec/postprocess.py   пересортировка по риску и доходности
-src/farrec/evaluate.py      единый протокол оценки
-src/farrec/paper_protocol.py  протокол оценки из статьи авторов датасета
-scripts/                    запуск экспериментов (см. reproduce.sh)
-service/app.py              FastAPI: топ-k рекомендаций для клиента на дату
-tests/                      тесты на утечки и юнит-тесты
+src/farrec/baselines.py     simple baselines
+src/farrec/cf.py            Item-kNN and ALS
+src/farrec/candidates.py    stage 1: candidate generation
+src/farrec/features.py      customer, asset and pair features
+src/farrec/ranker.py        stage 2: LightGBM / CatBoost ranker
+src/farrec/postprocess.py   re-ranking by risk and return
+src/farrec/evaluate.py      unified evaluation protocol
+src/farrec/paper_protocol.py  evaluation protocol from the dataset paper
+scripts/                    experiment runners (see reproduce.sh)
+service/app.py              FastAPI: top-k recommendations for a customer at a date
+tests/                      leakage tests and unit tests
 ```
 
-## Запуск
+## Running
 
 ```
 pip install -r requirements.txt
-# распаковать архив датасета в data/raw/FAR-Trans/
+# unpack the dataset archive into data/raw/FAR-Trans/
 pytest -q
-bash scripts/reproduce.sh          # все таблицы и графики, ~1 ч
+bash scripts/reproduce.sh          # all tables and figures, ~1 h
 uvicorn service.app:app --port 8000
 ```
 
-Пример запроса к сервису:
-`GET /recommend?customer_id=DD1E7FA6C74787F13EC7&date=2022-09-15&k=5&policy=strict` возвращает топ-5 с уровнем риска
-каждой бумаги, отметкой «покупал раньше», источником рекомендации и числом кандидатов, отброшенных по риску.
-Первый запрос на месяц обучает модель (~2 мин), следующие занимают ~9 с.
+Example request:
+`GET /recommend?customer_id=DD1E7FA6C74787F13EC7&date=2022-09-15&k=5&policy=strict` returns the top 5 with each
+asset's risk level, a "bought before" flag, the recommendation source, and the number of candidates dropped by the risk filter.
+The first request for a month trains the model (~2 min); subsequent ones take ~9 s.
 
-## Схема эксперимента
+## Experimental setup
 
-* Срезы: первое число каждого месяца. Признаки и кандидаты только из `(-inf, t)`, таргет: покупки в `[t, t+60d)`.
-* Для среза оценки `T` модель обучается только на прошлом: valid = последний срез, чьё окно таргета кончается
-  до `T` (early stopping), train = 12 срезов, чьи окна кончаются до valid. Без зазора метки train пересекались бы
-  с периодом оценки.
-* В оценке только клиенты, купившие хоть что-то в окне таргета. Бейзлайны оцениваются на 12 срезах
-  (2021-10 … 2022-09), ранкер на 6 (2022-04 … 2022-09) с переобучением на каждом.
-* `_new`-метрики: всё, что клиент покупал раньше, скрыто, таргет только первые покупки актива. Это важно,
-  потому что **78.5% покупок повторные**.
+* Cutoffs: the first day of each month. Features and candidates come only from `(-inf, t)`; target: purchases in `[t, t+60d)`.
+* For an evaluation cutoff `T` the model is trained only on the past: valid = the last cutoff whose target window ends
+  before `T` (early stopping), train = 12 cutoffs whose windows end before valid. Without this gap, train labels would
+  overlap the evaluation period.
+* Only customers who bought something in the target window are evaluated. Baselines are evaluated on 12 cutoffs
+  (2021-10 … 2022-09), the ranker on 6 (2022-04 … 2022-09) with retraining at each one.
+* `_new` metrics: everything the customer bought before is hidden; the target is only first purchases of an asset. This matters
+  because **78.5% of purchases are repeats**.
 
-## Особенности данных
+## Data quirks
 
-| Что нашёл | Как обработано |
+| Finding | Handling |
 |---|---|
-| 2018-01-02: ~35.7k «покупок» за день (обычно 50–300) — выгрузка стартовых портфелей | флаг `isSnapshot`: идут в портфель, но не считаются покупками |
-| `transactionID` не уникален (~29k повторов) — совместные счета | дедупликация только по полной строке |
-| Риск-профиль бывает `Predicted_*` | префикс снимается, отдельный флаг |
-| Профиль клиента не меняется во времени и заполнен задним числом | см. «Утечки» |
-| Приостановленные акции с замороженной ценой: волатильность 0 → уровень риска 1, «безопаснее облигаций» (FOLLIE FOLLIE, AEGEK, DIONIC…) | акция с >50% дней без изменения цены получает уровень 7 |
-| Продажи больше видимых покупок (история до 2018 не видна) | позиции обрезаются по нулю |
-| 89% покупок — акции | учитывается при интерпретации |
+| 2018-01-02: ~35.7k "purchases" in one day (normally 50–300): an export of initial portfolios | `isSnapshot` flag: they go into portfolios but are not counted as purchases |
+| `transactionID` is not unique (~29k duplicates): joint accounts | deduplicate only on the full row |
+| Risk profile is sometimes `Predicted_*` | prefix stripped, separate flag |
+| Customer profile never changes over time and is backfilled | see "Leakage" |
+| Suspended stocks with a frozen price: volatility 0 → risk level 1, "safer than bonds" (FOLLIE FOLLIE, AEGEK, DIONIC…) | a stock with >50% of days without price change gets level 7 |
+| Sales exceed visible purchases (history before 2018 is not visible) | positions are clipped at zero |
+| 89% of purchases are stocks | taken into account when interpreting results |
 
-## Бейзлайны
+## Baselines
 
-Среднее по 12 срезам, в скобках std. Параметры kNN и ALS подобраны только на срезах до теста (`scripts/tune_cf.py`).
+Mean over 12 cutoffs, std in brackets. kNN and ALS parameters are tuned only on cutoffs before the test (`scripts/tune_cf.py`).
 
-| method | NDCG@10 | HR@10 | NDCG@10_new | HR@10_new | Ret@5 (60д) | Unsuit@5 |
+| method | NDCG@10 | HR@10 | NDCG@10_new | HR@10_new | Ret@5 (60d) | Unsuit@5 |
 |---|---|---|---|---|---|---|
 | random | 0.002 | 0.01 | 0.003 | 0.01 | −0.4% | 0.38 |
 | pop_30d | 0.308 (0.070) | 0.64 | 0.243 | 0.48 | −1.0% (8.7%) | 0.62 |
@@ -94,28 +99,28 @@ uvicorn service.app:app --port 8000
 | item_knn | 0.539 (0.050) | 0.81 | **0.281** (0.037) | **0.53** | −1.3% | 0.68 |
 | als | 0.540 (0.041) | 0.80 | 0.202 | 0.38 | −1.4% | 0.67 |
 
-* По общему NDCG «свои покупки + популярность» не хуже kNN и ALS: разницу между моделями видно только на новых активах.
-* **Один тестовый срез врёт.** На срезе 2022-09 популярность даёт +8.1% за 60 дней, в среднем по 12 срезам −1.0%
-  при std 8.7%. Финансовые метрики имеют смысл только по многим срезам.
-* Ни один бейзлайн не обгоняет рынок. Momentum хуже всех: выбирает неликвидные бумаги с резкими скачками цены.
+* On overall NDCG, "own purchases + popularity" is as good as kNN and ALS: the difference between models only shows on new assets.
+* **A single test cutoff lies.** On the 2022-09 cutoff popularity yields +8.1% over 60 days, while the mean over 12 cutoffs is −1.0%
+  with std 8.7%. Financial metrics only make sense across many cutoffs.
+* No baseline beats the market. Momentum is the worst: it picks illiquid securities with sharp price jumps.
 
-## Двухуровневая модель
+## Two-stage model
 
-**Уровень 1, кандидаты** ([candidates.py](src/farrec/candidates.py)): объединение топ-50 из четырёх источников
-(свои прошлые покупки, Item-kNN, ALS, популярность), в среднем ~85 активов на клиента.
+**Stage 1, candidates** ([candidates.py](src/farrec/candidates.py)): union of the top 50 from four sources
+(own past purchases, Item-kNN, ALS, popularity), ~85 assets per customer on average.
 
-| топ-N из источника | кандидатов на клиента | полнота (все покупки) | полнота (новые активы) |
+| top-N per source | candidates per customer | recall (all purchases) | recall (new assets) |
 |---|---|---|---|
 | 20 | 35 | 88–89% | 54–67% |
 | **50** | **85** | **97%** | **84–89%** |
 | 100 | 155 | 99% | 95–97% |
 
-**Уровень 2, ранжирование** ([ranker.py](src/farrec/ranker.py)): LightGBM lambdarank, группа = (срез, клиент),
-68 признаков ([features.py](src/farrec/features.py)): клиент (активность, портфель, профиль), актив (доходности,
-волатильность, просадка, популярность и её тренд), пара (держит ли, сколько раз покупал, доля сектора в портфеле,
-превышение риска, популярность в риск-сегменте, скоры и ранги источников).
+**Stage 2, ranking** ([ranker.py](src/farrec/ranker.py)): LightGBM lambdarank, group = (cutoff, customer),
+68 features ([features.py](src/farrec/features.py)): customer (activity, portfolio, profile), asset (returns,
+volatility, drawdown, popularity and its trend), pair (currently held, number of past purchases, sector share in the portfolio,
+risk excess, popularity within the risk segment, source scores and ranks).
 
-Среднее по 6 срезам (2022-04 … 2022-09), модель лучше бейзлайнов **на каждом** срезе:
+Mean over 6 cutoffs (2022-04 … 2022-09); the model beats the baselines **on every** cutoff:
 
 | method | NDCG@10 | HR@10 | NDCG@10_new | HR@10_new |
 |---|---|---|---|---|
@@ -125,129 +130,129 @@ uvicorn service.app:app --port 8000
 | als | 0.570 | 0.82 | 0.188 | 0.34 |
 | **ranker_lgbm** | **0.604** | **0.85** | **0.287** | **0.52** |
 
-**CatBoost YetiRank** на 3 последних срезах: NDCG@10 0.590 против 0.588 у LightGBM, на новых активах 0.269 против
-0.271, то есть в пределах шума, а обучается примерно в 30 раз дольше (~1 ч против ~2 мин на срез). Основная модель — LightGBM.
+**CatBoost YetiRank** on the last 3 cutoffs: NDCG@10 0.590 vs 0.588 for LightGBM, on new assets 0.269 vs
+0.271, i.e. within noise, while training about 30× longer (~1 h vs ~2 min per cutoff). The main model is LightGBM.
 
-## Сравнение со статьёй авторов датасета
+## Comparison with the dataset paper
 
-Протокол статьи ([paper_protocol.py](src/farrec/paper_protocol.py)) отличается от моего: 61 дата раз в две недели
-(2019-08 … 2022-01), окно 6 месяцев, только новые для клиента активы, ROI@10 = среднемесячная доходность
-равновзвешенного топ-10. Чтобы убедиться, что протокол воспроизведён, сначала прогнал random: ROI@10 **0.0071**,
-ровно как в статье; nDCG@10 0.0098 против 0.0106.
+The paper's protocol ([paper_protocol.py](src/farrec/paper_protocol.py)) differs from mine: 61 dates every two weeks
+(2019-08 … 2022-01), a 6-month window, only assets new to the customer, ROI@10 = mean monthly return of an
+equally weighted top 10. To make sure the protocol is reproduced, I ran random first: ROI@10 **0.0071**,
+exactly as in the paper; nDCG@10 0.0098 vs 0.0106.
 
-| метод | nDCG@10 | ROI@10 | источник |
+| method | nDCG@10 | ROI@10 | source |
 |---|---|---|---|
-| LightGCN (лучший в статье) | 0.340 | 0.0004 | статья, 61 дата |
-| Popularity | 0.271 | 0.0006 | статья, 61 дата |
-| UB kNN | 0.160 | 0.0119 | статья, 61 дата |
-| **Item-kNN** | **0.353** | −0.0086 | этот проект, те же 61 дата |
-| pop_30d | 0.304 | −0.0140 | этот проект, те же 61 дата |
+| LightGCN (best in the paper) | 0.340 | 0.0004 | paper, 61 dates |
+| Popularity | 0.271 | 0.0006 | paper, 61 dates |
+| UB kNN | 0.160 | 0.0119 | paper, 61 dates |
+| **Item-kNN** | **0.353** | −0.0086 | this project, same 61 dates |
+| pop_30d | 0.304 | −0.0140 | this project, same 61 dates |
 
-Ранкер переобучается на каждой дате, поэтому его прогнал на 18 месячных датах внутри периода статьи (2020-06 … 2021-11):
-**0.345** против 0.335 у Item-kNN (лучше в 15 датах из 18) и 0.280 у популярности. ROI@10 1.42% в месяц при рынке 1.25%.
-Отрыв от kNN здесь меньше, чем в основном протоколе: модель учится на 60-дневном таргете с повторными покупками,
-а протокол статьи меряет только новые активы за 6 месяцев.
+The ranker is retrained at every date, so I ran it on 18 monthly dates inside the paper's period (2020-06 … 2021-11):
+**0.345** vs 0.335 for Item-kNN (better on 15 of 18 dates) and 0.280 for popularity. ROI@10 is 1.42% per month vs 1.25% for the market.
+The gap over kNN is smaller here than in the main protocol: the model learns on a 60-day target with repeat purchases,
+while the paper's protocol measures only new assets over 6 months.
 
-## Что модель выучила (SHAP)
+## What the model learned (SHAP)
 
 ![shap](reports/figures/shap_summary.png)
 
-* 47% суммарного |SHAP| дают скоры и ранги источников (kNN, ALS, повторы), 28% признаки актива, по 12–13%
-  клиента и пары.
-* **Модель выучила «покупают то, что выросло»**: вклад доходности за 90 дней растёт с её величиной, плюс слабый
-  эффект покупки на просадке.
-* **Риск модели почти безразличен:** средний вклад превышения уровня риска ~0.008 против ~0.35 у ранга kNN.
-  Поведение клиентов не учит модель соблюдать профиль, поэтому ограничения накладываются отдельно.
+* 47% of total |SHAP| comes from source scores and ranks (kNN, ALS, repeats), 28% from asset features, 12–13% each
+  from customer and pair features.
+* **The model learned "people buy what went up":** the contribution of the 90-day return grows with its value, plus a weak
+  buy-the-dip effect.
+* **The model barely cares about risk:** the mean contribution of risk-level excess is ~0.008 vs ~0.35 for the kNN rank.
+  Customer behaviour does not teach the model to respect the profile, so constraints are applied separately.
 
 ![shap dependence](reports/figures/shap_dependence.png)
 
-## Риск-профиль: компромисс между качеством и соответствием
+## Risk profile: the quality–suitability trade-off
 
-Уровень риска актива 1..7 по годовой волатильности (корзины как в SRRI: 0.5/2/5/10/15/25%). Калибровать допустимые
-уровни по поведению нельзя: **профиль почти не влияет на покупки**.
+Asset risk level 1..7 by annualised volatility (SRRI-style buckets: 0.5/2/5/10/15/25%). Allowed levels cannot
+be calibrated from behaviour: **the profile barely affects purchases**.
 
-| профиль | доля покупок уровня 7 | доля акций |
+| profile | share of level-7 purchases | share of stocks |
 |---|---|---|
 | Conservative | 70% | 75% |
 | Income | 79% | 83% |
 | Balanced | 82% | 87% |
 | Aggressive | 82% | 87% |
 
-Сделки в датасете клиентские (execution-only), а рекомендация — это совет, на который распространяются требования
-suitability. Поэтому лимиты задаются политикой ([configs/base.yaml](configs/base.yaml)): `strict` (Conservative ≤3,
-Income ≤4, Balanced ≤5, Aggressive ≤7) и `moderate` (+1 уровень для первых трёх профилей).
+The trades in the dataset are customer-initiated (execution-only), whereas a recommendation is advice subject to
+suitability requirements. So limits are set by policy ([configs/base.yaml](configs/base.yaml)): `strict` (Conservative ≤3,
+Income ≤4, Balanced ≤5, Aggressive ≤7) and `moderate` (+1 level for the first three profiles).
 
-Пересортировка ([postprocess.py](src/farrec/postprocess.py)): итоговый скор = перцентиль скора модели − λ × превышение
-уровня. Жёсткий фильтр выкидывает неподходящие активы и добивает список самыми популярными подходящими.
+Re-ranking ([postprocess.py](src/farrec/postprocess.py)): final score = model score percentile − λ × level
+excess. The hard filter drops unsuitable assets and fills the list with the most popular suitable ones.
 
 ![risk](reports/figures/risk_tradeoff.png)
 
-| strict | NDCG@10 | NDCG@10_new | доля неподходящих в топ-5 |
+| strict | NDCG@10 | NDCG@10_new | unsuitable share in top 5 |
 |---|---|---|---|
-| λ = 0 (без ограничений) | 0.604 | 0.287 | 73% |
+| λ = 0 (no constraints) | 0.604 | 0.287 | 73% |
 | λ = 0.1 | 0.574 | 0.280 | 69% |
 | λ = 0.2 | 0.504 | 0.239 | 61% |
 | λ = 0.5 | 0.200 | 0.127 | 17% |
-| жёсткий фильтр | 0.140 | 0.105 | 0% |
+| hard filter | 0.140 | 0.105 | 0% |
 
-* **Бесплатного соответствия нет:** каждая убранная неподходящая рекомендация — это потерянное попадание.
-  Полное соблюдение strict-политики стоит ~77% NDCG.
-* Кривая не линейная: при λ ≤ 0.1 потеря ~5%, затем обрыв между 0.2 и 0.5.
-* Умеренная политика при той же доле нарушений даёт заметно больше качества. Выбор политики — бизнес-решение,
-  кривая показывает его цену.
+* **There is no free suitability:** every unsuitable recommendation removed is a lost hit.
+  Full compliance with the strict policy costs ~77% of NDCG.
+* The curve is non-linear: at λ ≤ 0.1 the loss is ~5%, then it drops off between 0.2 and 0.5.
+* The moderate policy gives noticeably more quality at the same violation rate. The choice of policy is a business decision;
+  the curve shows its price.
 
-## Финансовый скор: работает ли «рекомендовать то, что вырастет»
+## Financial score: does "recommend what will go up" work?
 
-Итоговый скор = α × перцентиль P(покупки) + (1 − α) × перцентиль сигнала доходности. Сначала проверил, предсказывают ли
-сигналы будущую доходность (rank IC с доходностью за 60 дней, 28 срезов 2020–2022):
+Final score = α × percentile of P(purchase) + (1 − α) × percentile of a return signal. First I checked whether
+the signals predict future returns (rank IC with the 60-day return, 28 cutoffs 2020–2022):
 
-| сигнал | средний IC | доля месяцев с IC > 0 |
+| signal | mean IC | share of months with IC > 0 |
 |---|---|---|
-| momentum 90д | +0.081 | 71% |
-| momentum 365д | +0.041 | 61% |
-| низкая волатильность | −0.090 | 39% |
-| популярность за 30д | +0.008 | 43% |
+| momentum 90d | +0.081 | 71% |
+| momentum 365d | +0.041 | 61% |
+| low volatility | −0.090 | 39% |
+| 30-day popularity | +0.008 | 43% |
 
 ![return](reports/figures/return_tradeoff.png)
 
-* **Популярность доходность не предсказывает:** люди покупают то, что на слуху, и это не связано с будущим ростом.
-* **momentum 90д в 2022 году ухудшает доходность:** при α = 0 рекомендации отстают от рынка на 6.4 п.п. против 2.0 п.п.
-  у чистой модели. Сигнал, работавший в среднем за 2020–2022, развернулся.
-* momentum 365д даёт +0.5 п.п. при α = 0.8, но NDCG падает с 0.60 до 0.43, а шум доходности между срезами ±7 п.п.
-* **Вывод:** на этих данных финансовый скор не работает. Это результат, а не провал эксперимента.
+* **Popularity does not predict returns:** people buy what is in the news, and that is unrelated to future growth.
+* **90-day momentum hurts returns in 2022:** at α = 0 recommendations lag the market by 6.4 pp vs 2.0 pp
+  for the pure model. A signal that worked on average over 2020–2022 reversed.
+* 365-day momentum gives +0.5 pp at α = 0.8, but NDCG falls from 0.60 to 0.43, and return noise across cutoffs is ±7 pp.
+* **Conclusion:** on this data the financial score does not work. That is a result, not a failed experiment.
 
-## Качество по сегментам
+## Quality by segment
 
 ![segments](reports/figures/segments.png)
 
-| сегмент | n | repeat_then_pop | item_knn | ranker | ranker, новые | item_knn, новые |
+| segment | n | repeat_then_pop | item_knn | ranker | ranker, new | item_knn, new |
 |---|---|---|---|---|---|---|
-| Новички (≤2 покупок) | 268 | 0.334 | 0.348 | **0.390** | **0.247** | 0.196 |
-| Активные (≥10 за 90д) | 247 | 0.695 | 0.645 | **0.707** | 0.271 | **0.290** |
-| Консерваторы и Income | 588 | 0.606 | 0.604 | **0.627** | **0.319** | 0.305 |
-| Все | 1753 | 0.580 | 0.574 | **0.604** | **0.289** | 0.269 |
+| Newcomers (≤2 purchases) | 268 | 0.334 | 0.348 | **0.390** | **0.247** | 0.196 |
+| Active (≥10 in 90d) | 247 | 0.695 | 0.645 | **0.707** | 0.271 | **0.290** |
+| Conservative and Income | 588 | 0.606 | 0.604 | **0.627** | **0.319** | 0.305 |
+| All | 1753 | 0.580 | 0.574 | **0.604** | **0.289** | 0.269 |
 
-* Больше всего ранкер выигрывает на новичках: +12% к лучшему бейзлайну, на новых активах +26%.
-* У активных клиентов на новых активах kNN лучше ранкера: модель налегает на повторные покупки.
+* The ranker gains the most on newcomers: +12% over the best baseline, +26% on new assets.
+* For active customers kNN beats the ranker on new assets: the model leans on repeat purchases.
 
-## Утечки, которые нашёл и закрыл
+## Leakage found and closed
 
-* **Профили клиентов заполнены задним числом.** В 38.5% строк `lastQuestionnaireDate` позже даты самой строки,
-  а риск-профиль ни у одного клиента не меняется. Профиль отражает итоговое состояние, а не состояние на дату.
-  Признак «дней с последней анкеты» давал отрицательные значения и был убран; риск-профиль используется как
-  статичный атрибут (ограничение данных).
-* **Снапшот портфелей 2018-01-02 под видом покупок** раздувал бы популярность и таргет.
-* Цены только forward-fill, никогда backward-fill (иначе в прошлое попадают будущие цены).
-* Кандидаты ограничены активами, у которых была цена до среза.
-* `forward_return` использует будущие цены и вызывается только в метриках.
-* Обучающие срезы ранкера только такие, у которых окно таргета закончилось до среза оценки.
-* Подбор гиперпараметров только на срезах до теста.
-* Тест [test_no_leakage.py](tests/test_no_leakage.py): рекомендации и признаки второго уровня на полных данных и на данных,
-  обрезанных по дате среза, должны совпадать.
+* **Customer profiles are backfilled.** In 38.5% of rows `lastQuestionnaireDate` is later than the row's own date,
+  and no customer's risk profile ever changes. The profile reflects the final state, not the state at the date.
+  The "days since last questionnaire" feature produced negative values and was removed; the risk profile is used as a
+  static attribute (a data limitation).
+* **The 2018-01-02 portfolio snapshot disguised as purchases** would have inflated popularity and the target.
+* Prices are forward-filled only, never backward-filled (otherwise future prices leak into the past).
+* Candidates are limited to assets that had a price before the cutoff.
+* `forward_return` uses future prices and is called only in metrics.
+* Ranker training cutoffs are only those whose target window ended before the evaluation cutoff.
+* Hyperparameter tuning only on cutoffs before the test.
+* Test [test_no_leakage.py](tests/test_no_leakage.py): second-stage recommendations and features on full data and on data
+  truncated at the cutoff date must match.
 
-## Ограничения
+## Limitations
 
-* Риск-профиль статичен и, вероятно, отражает анкеты после даты среза.
-* Уровень риска считается по отдельной бумаге, а не по портфелю: для реального продукта нужна оценка вклада в риск портфеля.
-* Таргет — факт покупки. Мы не знаем, что клиенту показывали, поэтому это оценка «угадывания», а не эффекта рекомендаций.
-* Тестовый период 2022 года — падающий рынок; финансовые выводы привязаны к режиму рынка.
+* The risk profile is static and probably reflects questionnaires filled after the cutoff date.
+* The risk level is computed per security, not per portfolio: a real product needs an estimate of the contribution to portfolio risk.
+* The target is the fact of purchase. We do not know what the customer was shown, so this measures "guessing", not the effect of recommendations.
+* The 2022 test period is a falling market; financial conclusions are tied to the market regime.
