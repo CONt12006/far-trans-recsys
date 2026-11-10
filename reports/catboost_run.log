@@ -2,3 +2,33 @@
   2022-07-01 done (1568 users)
     [catboost] eval 2022-08-01: train 2021-05-01..2022-04-01 (2232549 rows), valid 2022-06-01, best_iter=436
   2022-08-01 done (1499 users)
+    [catboost] eval 2022-09-01: train 2021-06-01..2022-05-01 (2209282 rows), valid 2022-07-01, best_iter=167
+  2022-09-01 done (1362 users)
+
+Mean over 3 cutoffs (2022-07-01..2022-09-01):
+                 NDCG@10   HR@10    R@10  NDCG@10_new  HR@10_new   Ret@5  Excess@5  Unsuit@5  Cov@10
+method                                                                                              
+pop_30d           0.2894  0.6359  0.5108       0.2057     0.4333  0.0621    0.0669    0.6546  0.0125
+repeat_then_pop   0.5660  0.8219  0.7273       0.2013     0.4242  0.0229    0.0276    0.7027  0.2502
+item_knn          0.5520  0.8134  0.7128       0.2485     0.4766  0.0281    0.0328    0.7228  0.1773
+als               0.5586  0.8137  0.7207       0.1777     0.3295  0.0182    0.0230    0.7135  0.2527
+ranker_catboost   0.5902  0.8393  0.7507       0.2687     0.4995  0.0242    0.0290    0.7258  0.2086
+
+NDCG@10 by cutoff:
+method      pop_30d  repeat_then_pop  item_knn     als  ranker_catboost
+cutoff                                                                 
+2022-07-01   0.3649           0.5747    0.5740  0.5621           0.6035
+2022-08-01   0.2146           0.5574    0.5465  0.5576           0.5897
+2022-09-01   0.2886           0.5660    0.5355  0.5561           0.5774
+Traceback (most recent call last):
+  File "C:\Cake_Programmer\Python\far-trans-recsys\scripts\run_ranker.py", line 64, in <module>
+    main()
+  File "C:\Cake_Programmer\Python\far-trans-recsys\scripts\run_ranker.py", line 57, in main
+    imp = ranker.feature_importance(cuts[-1])
+          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Cake_Programmer\Python\far-trans-recsys\src\farrec\ranker.py", line 124, in feature_importance
+    names = m.booster_.feature_name()
+                 ^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\kmkar\AppData\Local\Programs\Python\Python311\Lib\site-packages\catboost\core.py", line 3548, in get_feature_importance
+    raise CatBoostError(
+_catboost.CatBoostError: Feature importance type EFstrType.LossFunctionChange requires training dataset                             to be passed to this function.

@@ -123,7 +123,7 @@ class TwoStageRanker:
             imp = m.booster_.feature_importance("gain")
             names = m.booster_.feature_name()
         else:
-            imp, names = m.get_feature_importance(), m.feature_names_
+            imp, names = m.get_feature_importance(type="PredictionValuesChange"), m.feature_names_
         return pd.Series(imp, index=names).sort_values(ascending=False)
 
     def recommend_any(self, ft, cutoff, customers, candidates, k):
