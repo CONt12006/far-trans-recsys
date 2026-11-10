@@ -126,6 +126,20 @@ class TwoStageRanker:
             imp, names = m.get_feature_importance(), m.feature_names_
         return pd.Series(imp, index=names).sort_values(ascending=False)
 
+    def recommend_any(self, ft, cutoff, customers, candidates, k):
+        """Like __call__, but for an arbitrary customer set / candidate universe (no labels at all).
+        Used for the paper's protocol, whose customer set differs from ours."""
+        path = self.cache / f"unlabelled_{cutoff.date()}_{len(customers)}_{len(candidates)}.parquet"
+        if path.exists():
+            df = pd.read_parquet(path)
+        else:
+            df = build_frame(self.ft, cutoff, pd.Index(customers), pd.Index(candidates), self.cfg)
+            df.to_parquet(path, index=False)
+        df = df.assign(score=self.score(df, cutoff))
+        df = df.sort_values(["customerID", "score"], ascending=[True, False])
+        df["rank"] = df.groupby("customerID").cumcount() + 1
+        return df.loc[df["rank"] <= k, ["customerID", "ISIN", "score", "rank"]].reset_index(drop=True)
+
     # ------------------------------------------------------------ recommender interface
     def __call__(self, ft, cutoff, customers, candidates, k):
         df = self.frame(cutoff)
