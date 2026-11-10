@@ -22,3 +22,72 @@ C:\Users\kmkar\AppData\Local\Programs\Python\Python311\Lib\site-packages\lightgb
   eval_set = _validate_eval_set_Xy(eval_set=eval_set, eval_X=eval_X, eval_y=eval_y)
     [lgbm] eval 2020-11-01: train 2019-08-01..2020-07-01 (1795696 rows), valid 2020-09-01, best_iter=277
   2020-11-01 (2433 users)
+C:\Users\kmkar\AppData\Local\Programs\Python\Python311\Lib\site-packages\lightgbm\sklearn.py:1106: LGBMDeprecationWarning: The argument 'eval_set' is deprecated, use 'eval_X' and 'eval_y' instead.
+  eval_set = _validate_eval_set_Xy(eval_set=eval_set, eval_X=eval_X, eval_y=eval_y)
+    [lgbm] eval 2020-12-01: train 2019-09-01..2020-08-01 (1886326 rows), valid 2020-10-01, best_iter=209
+  2020-12-01 (2522 users)
+C:\Users\kmkar\AppData\Local\Programs\Python\Python311\Lib\site-packages\lightgbm\sklearn.py:1106: LGBMDeprecationWarning: The argument 'eval_set' is deprecated, use 'eval_X' and 'eval_y' instead.
+  eval_set = _validate_eval_set_Xy(eval_set=eval_set, eval_X=eval_X, eval_y=eval_y)
+    [lgbm] eval 2021-01-01: train 2019-10-01..2020-09-01 (2028137 rows), valid 2020-11-01, best_iter=184
+  2021-01-01 (2325 users)
+C:\Users\kmkar\AppData\Local\Programs\Python\Python311\Lib\site-packages\lightgbm\sklearn.py:1106: LGBMDeprecationWarning: The argument 'eval_set' is deprecated, use 'eval_X' and 'eval_y' instead.
+  eval_set = _validate_eval_set_Xy(eval_set=eval_set, eval_X=eval_X, eval_y=eval_y)
+    [lgbm] eval 2021-02-01: train 2019-11-01..2020-10-01 (2183717 rows), valid 2020-12-01, best_iter=268
+  2021-02-01 (2270 users)
+C:\Users\kmkar\AppData\Local\Programs\Python\Python311\Lib\site-packages\lightgbm\sklearn.py:1106: LGBMDeprecationWarning: The argument 'eval_set' is deprecated, use 'eval_X' and 'eval_y' instead.
+  eval_set = _validate_eval_set_Xy(eval_set=eval_set, eval_X=eval_X, eval_y=eval_y)
+    [lgbm] eval 2021-03-01: train 2019-11-01..2020-10-01 (2183717 rows), valid 2020-12-01, best_iter=268
+  2021-03-01 (2259 users)
+C:\Users\kmkar\AppData\Local\Programs\Python\Python311\Lib\site-packages\lightgbm\sklearn.py:1106: LGBMDeprecationWarning: The argument 'eval_set' is deprecated, use 'eval_X' and 'eval_y' instead.
+  eval_set = _validate_eval_set_Xy(eval_set=eval_set, eval_X=eval_X, eval_y=eval_y)
+    [lgbm] eval 2021-04-01: train 2019-12-01..2020-11-01 (2341242 rows), valid 2021-01-01, best_iter=407
+  2021-04-01 (2222 users)
+C:\Users\kmkar\AppData\Local\Programs\Python\Python311\Lib\site-packages\lightgbm\sklearn.py:1106: LGBMDeprecationWarning: The argument 'eval_set' is deprecated, use 'eval_X' and 'eval_y' instead.
+  eval_set = _validate_eval_set_Xy(eval_set=eval_set, eval_X=eval_X, eval_y=eval_y)
+    [lgbm] eval 2021-05-01: train 2020-01-01..2020-12-01 (2422660 rows), valid 2021-03-01, best_iter=213
+  2021-05-01 (2006 users)
+C:\Users\kmkar\AppData\Local\Programs\Python\Python311\Lib\site-packages\lightgbm\sklearn.py:1106: LGBMDeprecationWarning: The argument 'eval_set' is deprecated, use 'eval_X' and 'eval_y' instead.
+  eval_set = _validate_eval_set_Xy(eval_set=eval_set, eval_X=eval_X, eval_y=eval_y)
+    [lgbm] eval 2021-06-01: train 2020-02-01..2021-01-01 (2403561 rows), valid 2021-04-01, best_iter=244
+  2021-06-01 (1941 users)
+C:\Users\kmkar\AppData\Local\Programs\Python\Python311\Lib\site-packages\lightgbm\sklearn.py:1106: LGBMDeprecationWarning: The argument 'eval_set' is deprecated, use 'eval_X' and 'eval_y' instead.
+  eval_set = _validate_eval_set_Xy(eval_set=eval_set, eval_X=eval_X, eval_y=eval_y)
+    [lgbm] eval 2021-07-01: train 2020-04-01..2021-03-01 (2218081 rows), valid 2021-05-01, best_iter=124
+  2021-07-01 (1901 users)
+C:\Users\kmkar\AppData\Local\Programs\Python\Python311\Lib\site-packages\lightgbm\sklearn.py:1106: LGBMDeprecationWarning: The argument 'eval_set' is deprecated, use 'eval_X' and 'eval_y' instead.
+  eval_set = _validate_eval_set_Xy(eval_set=eval_set, eval_X=eval_X, eval_y=eval_y)
+    [lgbm] eval 2021-08-01: train 2020-05-01..2021-04-01 (2216014 rows), valid 2021-06-01, best_iter=1
+  2021-08-01 (2055 users)
+C:\Users\kmkar\AppData\Local\Programs\Python\Python311\Lib\site-packages\lightgbm\sklearn.py:1106: LGBMDeprecationWarning: The argument 'eval_set' is deprecated, use 'eval_X' and 'eval_y' instead.
+  eval_set = _validate_eval_set_Xy(eval_set=eval_set, eval_X=eval_X, eval_y=eval_y)
+    [lgbm] eval 2021-09-01: train 2020-06-01..2021-05-01 (2213691 rows), valid 2021-07-01, best_iter=168
+  2021-09-01 (2164 users)
+C:\Users\kmkar\AppData\Local\Programs\Python\Python311\Lib\site-packages\lightgbm\sklearn.py:1106: LGBMDeprecationWarning: The argument 'eval_set' is deprecated, use 'eval_X' and 'eval_y' instead.
+  eval_set = _validate_eval_set_Xy(eval_set=eval_set, eval_X=eval_X, eval_y=eval_y)
+    [lgbm] eval 2021-10-01: train 2020-07-01..2021-06-01 (2221721 rows), valid 2021-08-01, best_iter=289
+  2021-10-01 (2268 users)
+C:\Users\kmkar\AppData\Local\Programs\Python\Python311\Lib\site-packages\lightgbm\sklearn.py:1106: LGBMDeprecationWarning: The argument 'eval_set' is deprecated, use 'eval_X' and 'eval_y' instead.
+  eval_set = _validate_eval_set_Xy(eval_set=eval_set, eval_X=eval_X, eval_y=eval_y)
+    [lgbm] eval 2021-11-01: train 2020-08-01..2021-07-01 (2235466 rows), valid 2021-09-01, best_iter=215
+  2021-11-01 (2218 users)
+
+Paper protocol, 18 dates (2020-06-01..2021-11-01):
+             nDCG@10  ROI@10  ROI_market
+method                                  
+pop_30d       0.2799  0.0072      0.0125
+item_knn      0.3354  0.0145      0.0125
+ranker_lgbm   0.3450  0.0142      0.0125
+
+Paper Table 2 (2019-08..2022-05, 61 dates):
+                            nDCG@10  ROI@10
+Random                       0.0106  0.0071
+Random forest (prices)       0.0237  0.0259
+Linear regression (prices)   0.0215  0.0249
+LightGBM (prices)            0.0221  0.0225
+Popularity                   0.2710  0.0006
+LightGCN                     0.3404  0.0004
+ARM                          0.2556  0.0007
+MF                           0.1780  0.0038
+UB kNN                       0.1599  0.0119
+Hybrid-nDCG                  0.2313  0.0063
+Hybrid-regression            0.0261  0.0132
