@@ -7,3 +7,4 @@ __pycache__/
 catboost_info/
 reports/*.csv
 !reports/.gitkeep
+reports/*.log
