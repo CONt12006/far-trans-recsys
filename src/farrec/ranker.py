@@ -40,6 +40,8 @@ class TwoStageRanker:
         self.cuts = all_cutoffs("2019-01-01", s["last_cutoff"], s["freq"])
         self.models: dict = {}
         self.categories: dict = {}
+        self.score_dir = self.cache.parent / f"scores_{backend}"
+        self.score_dir.mkdir(parents=True, exist_ok=True)
 
     # ------------------------------------------------------------ data
     def frame(self, cutoff: pd.Timestamp) -> pd.DataFrame:
@@ -129,6 +131,9 @@ class TwoStageRanker:
         df = self.frame(cutoff)
         df = df[df.customerID.isin(customers)].drop(columns="label")  # label is never used for prediction
         df = df.assign(score=self.score(df, cutoff))
+        if self.score_dir is not None:
+            # scored candidates are reused by post-processing experiments (risk / return re-ranking)
+            df.to_parquet(self.score_dir / f"{cutoff.date()}.parquet", index=False)
         df = df.sort_values(["customerID", "score"], ascending=[True, False])
         df["rank"] = df.groupby("customerID").cumcount() + 1
         return df.loc[df["rank"] <= k, ["customerID", "ISIN", "score", "rank"]].reset_index(drop=True)

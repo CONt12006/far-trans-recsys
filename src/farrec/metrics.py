@@ -31,6 +31,17 @@ def ranking_metrics(recs: pd.DataFrame, target: pd.DataFrame, ks=(1, 5, 10)) -> 
     return out
 
 
+def ndcg_per_user(recs: pd.DataFrame, target: pd.DataFrame, k: int = 10) -> pd.Series:
+    """NDCG@k for every customer with a target (for segment analysis / significance tests)."""
+    users = target.customerID.unique()
+    n_rel = target.groupby("customerID").size().reindex(users)
+    r = recs[(recs["rank"] <= k) & recs.customerID.isin(users)].merge(
+        target.assign(hit=1), on=["customerID", "ISIN"], how="left")
+    dcg = (r.hit.fillna(0) / np.log2(r["rank"] + 1)).groupby(r.customerID).sum().reindex(users, fill_value=0)
+    idcg = np.array([np.sum(1 / np.log2(np.arange(2, min(n, k) + 2))) for n in n_rel.values])
+    return pd.Series(dcg.values / idcg, index=users, name=f"NDCG@{k}")
+
+
 def financial_metrics(recs: pd.DataFrame, target: pd.DataFrame, fwd_ret: pd.Series,
                       universe: pd.Index, k: int = 5) -> dict:
     """Mean forward return of top-k recs vs. what customers actually bought vs. equal-weight market.

@@ -21,9 +21,22 @@ risk:
   # annualised volatility thresholds -> SRRI-like level 1..7
   srri_bounds: [0.005, 0.02, 0.05, 0.10, 0.15, 0.25]
   vol_window_days: 365
-  max_level:
+  max_level:          # default policy used by metrics/features (= policies.strict)
     Conservative: 3
     Income: 4
     Balanced: 5
     Aggressive: 7
     Not_Available: 7
+  policies:
+    strict:           # single stocks (level 6-7) only for aggressive profiles
+      Conservative: 3
+      Income: 4
+      Balanced: 5
+      Aggressive: 7
+      Not_Available: 7
+    moderate:         # balanced profiles may get level-6 assets
+      Conservative: 4
+      Income: 5
+      Balanced: 6
+      Aggressive: 7
+      Not_Available: 7
