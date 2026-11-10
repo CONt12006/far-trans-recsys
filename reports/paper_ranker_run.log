@@ -1,2 +1,12 @@
 C:\Users\kmkar\AppData\Local\Programs\Python\Python311\Lib\site-packages\lightgbm\sklearn.py:1106: LGBMDeprecationWarning: The argument 'eval_set' is deprecated, use 'eval_X' and 'eval_y' instead.
   eval_set = _validate_eval_set_Xy(eval_set=eval_set, eval_X=eval_X, eval_y=eval_y)
+    [lgbm] eval 2020-06-01: train 2019-03-01..2020-02-01 (972280 rows), valid 2020-04-01, best_iter=324
+  2020-06-01 (1696 users)
+C:\Users\kmkar\AppData\Local\Programs\Python\Python311\Lib\site-packages\lightgbm\sklearn.py:1106: LGBMDeprecationWarning: The argument 'eval_set' is deprecated, use 'eval_X' and 'eval_y' instead.
+  eval_set = _validate_eval_set_Xy(eval_set=eval_set, eval_X=eval_X, eval_y=eval_y)
+    [lgbm] eval 2020-07-01: train 2019-04-01..2020-03-01 (1240426 rows), valid 2020-05-01, best_iter=202
+  2020-07-01 (1837 users)
+C:\Users\kmkar\AppData\Local\Programs\Python\Python311\Lib\site-packages\lightgbm\sklearn.py:1106: LGBMDeprecationWarning: The argument 'eval_set' is deprecated, use 'eval_X' and 'eval_y' instead.
+  eval_set = _validate_eval_set_Xy(eval_set=eval_set, eval_X=eval_X, eval_y=eval_y)
+    [lgbm] eval 2020-08-01: train 2019-05-01..2020-04-01 (1430852 rows), valid 2020-06-01, best_iter=14
+  2020-08-01 (1926 users)

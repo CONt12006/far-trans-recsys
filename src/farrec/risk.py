@@ -22,11 +22,25 @@ def annual_volatility(prices: pd.DataFrame, date: pd.Timestamp, window_days: int
     return vol.replace([np.inf, -np.inf], np.nan)
 
 
+def stale_share(prices: pd.DataFrame, date: pd.Timestamp, window_days: int = 180) -> pd.Series:
+    """Share of observations with an unchanged close in [date - window, date)."""
+    p = prices[(prices.timestamp < date) & (prices.timestamp >= date - pd.Timedelta(days=window_days))]
+    p = p.sort_values(["ISIN", "timestamp"])
+    r = p.groupby("ISIN").closePrice.pct_change()
+    return (r.abs() < 1e-12).groupby(p.ISIN).mean()
+
+
 def asset_risk_levels(prices: pd.DataFrame, assets: pd.DataFrame, date: pd.Timestamp,
-                      bounds=DEFAULT_BOUNDS, window_days: int = 365) -> pd.Series:
+                      bounds=DEFAULT_BOUNDS, window_days: int = 365, max_stale: float = 0.5) -> pd.Series:
     vol = annual_volatility(prices, date, window_days)
     lvl = pd.Series(np.digitize(vol.values, bounds) + 1, index=vol.index, dtype=float)
     lvl[vol.isna()] = np.nan
+    # Suspended / illiquid stocks have a frozen price -> ~zero volatility -> they would look like
+    # the SAFEST assets (level 1; e.g. FOLLIE FOLLIE after the 2018 scandal). Their risk is unknown: level 7.
+    stale = stale_share(prices, date)
+    cat0 = assets.set_index("ISIN").assetCategory
+    frozen = stale[(stale > max_stale) & (stale.index.map(cat0) == "Stock")].index
+    lvl.loc[lvl.index.intersection(frozen)] = 7
     # Fallback for short history: median level of the asset's category, else the max level.
     cat = assets.set_index("ISIN").assetCategory
     all_isins = cat.index.union(lvl.index)
