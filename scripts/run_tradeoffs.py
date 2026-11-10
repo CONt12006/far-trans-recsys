@@ -76,7 +76,13 @@ def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--backend", default="lgbm")
     ap.add_argument("--n_eval", type=int, default=6)
+    ap.add_argument("--plot_only", action="store_true", help="redraw figures from saved CSVs")
     args = ap.parse_args()
+    out = ROOT / "reports"
+    if args.plot_only:
+        plot_risk(pd.read_csv(out / "tradeoff_risk.csv"), out / "figures" / "risk_tradeoff.png")
+        plot_return(pd.read_csv(out / "tradeoff_return.csv"), out / "figures" / "return_tradeoff.png")
+        return
     cfg = yaml.safe_load(open(ROOT / "configs/base.yaml"))
     s = cfg["split"]
     ft = load(ROOT / cfg["data"]["raw_dir"])
@@ -137,10 +143,12 @@ def plot_risk(risk: pd.DataFrame, path: Path):
         for ax, y in zip(axes, ["NDCG@10", "NDCG@10_new"]):
             ax.plot(soft["Unsuit@5"], soft[y], "-o", color=color, lw=2, ms=6, label=f"{pname}: штраф λ")
             ax.plot(hard["Unsuit@5"], hard[y], "s", color=color, ms=9, mec="white", mew=2, label=f"{pname}: жёсткий фильтр")
-            for _, r in soft.iterrows():
-                if r.lam in (0.0, 0.1, 1.0):
-                    ax.annotate(f"λ={r.lam:g}", (r["Unsuit@5"], r[y]), textcoords="offset points",
-                                xytext=(6, 4), fontsize=8, color="#55554f")
+            if pname == "strict":  # label one curve only; both use the same lambda grid
+                offs = {0.0: (-34, 6), 0.2: (8, -4), 0.5: (8, -2), 1.0: (6, -12)}
+                for _, r in soft.iterrows():
+                    if r.lam in offs:
+                        ax.annotate(f"λ={r.lam:g}", (r["Unsuit@5"], r[y]), textcoords="offset points",
+                                    xytext=offs[r.lam], fontsize=8, color="#55554f")
     for ax, t in zip(axes, ["NDCG@10 (все покупки)", "NDCG@10 (новые активы)"]):
         ax.set_xlabel("Доля неподходящих по риску в топ-5")
         ax.set_title(t, loc="left", fontsize=11, color="#1f1f1c")
