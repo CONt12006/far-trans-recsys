@@ -26,9 +26,11 @@ from farrec.splits import all_cutoffs, assign_splits, make_slice  # noqa: E402
 
 GRIDS = {
     "als": {"factors": [32, 64, 128], "reg": [0.01, 0.1], "alpha": [5.0, 20.0, 50.0], "tau_days": [90.0, 365.0]},
+    # second round around the best point of "als" (alpha=50 was the edge of the first grid)
+    "als_ext": {"factors": [256, 512], "reg": [0.01], "alpha": [400.0, 800.0, 1600.0], "tau_days": [90.0]},
     "item_knn": {"n_neighbors": [20, 50, 200], "shrink": [0.0, 10.0, 50.0], "tau_days": [90.0, 180.0, 365.0]},
 }
-FN = {"als": als, "item_knn": item_knn}
+FN = {"als": als, "als_ext": als, "item_knn": item_knn}
 
 
 def main():

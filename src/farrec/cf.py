@@ -97,10 +97,11 @@ def item_knn(ft, cutoff, customers, candidates, k, n_neighbors: int = 200, tau_d
     return _assemble(us, users, pd.Index(customers), _popularity(ft, cutoff, items), items, k)
 
 
-def als(ft, cutoff, customers, candidates, k, factors: int = 128, reg: float = 0.01, iters: int = 20,
-        alpha: float = 50.0, tau_days: float = 90.0, seed: int = 0):
-    # defaults tuned on validation cutoffs (scripts/tune_cf.py), see reports/tune_als.csv;
-    # alpha=50 is the edge of the grid -> worth extending
+def als(ft, cutoff, customers, candidates, k, factors: int = 256, reg: float = 0.01, iters: int = 20,
+        alpha: float = 400.0, tau_days: float = 90.0, seed: int = 0):
+    # defaults tuned on validation cutoffs in three rounds (scripts/tune_cf.py --model als / als_ext):
+    # alpha 50 -> 400 and factors 128 -> 256 raised validation NDCG@10_new from 0.194 to 0.259;
+    # alpha 800/1600 and factors 512 do not help (plateau)
     from implicit.als import AlternatingLeastSquares
     from implicit.nearest_neighbours import bm25_weight
 

@@ -12,8 +12,13 @@ candidate list runs short are padded with the most popular suitable assets.
 """
 from __future__ import annotations
 
+from pathlib import Path
+
 import numpy as np
 import pandas as pd
+
+from .data import customer_profile_asof
+from .risk import asset_risk_levels, customer_max_level
 
 SIGNALS = {
     "mom_90": lambda d: d.a_ret_90d,
@@ -66,3 +71,33 @@ def _pad(d: pd.DataFrame, limit: pd.Series, fillers: dict, k: int) -> pd.DataFra
         rows.append(pd.DataFrame({"customerID": c, "ISIN": extra,
                                   "final": -1.0 - np.arange(len(extra)) * 1e-3}))
     return pd.concat([d, *rows], ignore_index=True)
+
+
+class ScoredRecommender:
+    """Recommender over saved ranker scores (data/processed/scores_*) with post-processing.
+
+    Customers without any (remaining) candidate still get a list when hard=True: it is
+    filled with the most popular suitable assets.
+    """
+
+    def __init__(self, ft, cfg, score_dir: Path, policy: dict, **kw):
+        self.ft, self.cfg, self.dir, self.policy, self.kw = ft, cfg, Path(score_dir), policy, kw
+        self._cache: dict = {}
+
+    def _load(self, cutoff):
+        if cutoff not in self._cache:
+            df = pd.read_parquet(self.dir / f"{cutoff.date()}.parquet")
+            fillers = None
+            if self.kw.get("hard"):
+                lvl = asset_risk_levels(self.ft.prices, self.ft.assets, cutoff, self.cfg["risk"]["srri_bounds"])
+                b = self.ft.buys[(self.ft.buys.timestamp < cutoff) & (self.ft.buys.timestamp >= cutoff - pd.Timedelta(days=30))]
+                fillers = suitable_fillers(lvl, b.groupby("ISIN").customerID.nunique())
+            self._cache[cutoff] = (df, fillers)
+        return self._cache[cutoff]
+
+    def __call__(self, ft, cutoff, customers, candidates, k):
+        df, fillers = self._load(cutoff)
+        df = df[df.customerID.isin(customers)]
+        prof = customer_profile_asof(self.ft.customers, cutoff)
+        limit = customer_max_level(prof, pd.Index(customers), self.policy)
+        return rerank(df, k, limit, fillers=fillers, **self.kw).reset_index(drop=True)

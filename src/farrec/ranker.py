@@ -28,12 +28,17 @@ CATBOOST_PARAMS = dict(loss_function="YetiRank", iterations=3000, learning_rate=
 
 class TwoStageRanker:
     def __init__(self, ft: FarTrans, cfg: dict, backend: str = "lgbm", n_train_cutoffs: int = 12,
-                 cache_dir: str | Path = "data/processed/frames", drop_features: tuple = (), params: dict | None = None):
+                 cache_dir: str | Path = "data/processed/frames", drop_features: tuple = (), params: dict | None = None,
+                 suitable_only: bool = False):
         self.ft, self.cfg, self.backend = ft, cfg, backend
         self.n_train = n_train_cutoffs
         self.cache = Path(cache_dir)
         self.cache.mkdir(parents=True, exist_ok=True)
         self.drop = set(drop_features)
+        # suitable_only: train and rank only among assets allowed by the default (strict) risk policy,
+        # instead of training on everything and filtering afterwards
+        self.suitable_only = suitable_only
+        self.variant = "_suitable" if suitable_only else ""
         self.params = params or (LGBM_PARAMS if backend == "lgbm" else CATBOOST_PARAMS)
         s = cfg["split"]
         self.td = s["target_days"]
@@ -41,7 +46,7 @@ class TwoStageRanker:
         self.cuts = all_cutoffs("2019-01-01", s["last_cutoff"], s["freq"])
         self.models: dict = {}
         self.categories: dict = {}  # cutoff -> {feature: categories}; one model per cutoff
-        self.score_dir = self.cache.parent / f"scores_{backend}"
+        self.score_dir = self.cache.parent / f"scores_{backend}{self.variant}"
         self.score_dir.mkdir(parents=True, exist_ok=True)
         self.model_dir = self.cache.parent / "models"
         self.model_dir.mkdir(parents=True, exist_ok=True)
@@ -56,6 +61,9 @@ class TwoStageRanker:
         df = build_frame(self.ft, cutoff, sl.eval_customers, sl.candidates, self.cfg, sl.target)
         df.to_parquet(path, index=False)
         return df
+
+    def _restrict(self, df: pd.DataFrame) -> pd.DataFrame:
+        return df[df.p_risk_excess.fillna(1) <= 0] if self.suitable_only else df
 
     def features(self, df: pd.DataFrame) -> list[str]:
         return [c for c in feature_columns(df) if c not in self.drop]
@@ -83,7 +91,7 @@ class TwoStageRanker:
         train_c = train_cutoffs_for(valid_c, self.cuts, self.td)[-self.n_train:]
 
         def load(cs):
-            df = pd.concat([self.frame(c) for c in cs], ignore_index=True)
+            df = self._restrict(pd.concat([self.frame(c) for c in cs], ignore_index=True))
             # groups without any positive carry no ranking signal
             has_pos = df.groupby(["cutoff", "customerID"]).label.transform("max") > 0
             return df[has_pos].sort_values(["cutoff", "customerID"]).reset_index(drop=True)
@@ -128,7 +136,7 @@ class TwoStageRanker:
     def _model_path(self, cutoff: pd.Timestamp) -> Path:
         ext = "txt" if self.backend == "lgbm" else "cbm"
         tag = "" if not self.drop else "_drop" + str(abs(hash(tuple(sorted(self.drop)))) % 10**6)
-        return self.model_dir / f"{self.backend}{tag}_{cutoff.date()}.{ext}"
+        return self.model_dir / f"{self.backend}{self.variant}{tag}_{cutoff.date()}.{ext}"
 
     def _save_model(self, cutoff, m):
         path = self._model_path(cutoff)
@@ -184,7 +192,7 @@ class TwoStageRanker:
     # ------------------------------------------------------------ recommender interface
     def __call__(self, ft, cutoff, customers, candidates, k):
         df = self.frame(cutoff)
-        df = df[df.customerID.isin(customers)].drop(columns="label")  # label is never used for prediction
+        df = self._restrict(df[df.customerID.isin(customers)].drop(columns="label"))  # label never used for prediction
         df = df.assign(score=self.score(df, cutoff))
         if self.score_dir is not None:
             # scored candidates are reused by post-processing experiments (risk / return re-ranking)

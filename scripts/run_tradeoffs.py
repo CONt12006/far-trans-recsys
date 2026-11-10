@@ -26,43 +26,15 @@ import matplotlib.pyplot as plt  # noqa: E402
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / "src"))
 
-from farrec.data import customer_profile_asof, load  # noqa: E402
+from farrec.data import load  # noqa: E402
 from farrec.evaluate import evaluate  # noqa: E402
-from farrec.postprocess import rerank, suitable_fillers  # noqa: E402
-from farrec.risk import asset_risk_levels, customer_max_level  # noqa: E402
+from farrec.postprocess import ScoredRecommender  # noqa: E402
 from farrec.splits import all_cutoffs, make_slice  # noqa: E402
 
 METRICS = ["NDCG@10", "NDCG@10_new", "HR@10", "Ret@5", "Excess@5", "WinRate@5", "Unsuit@5", "RiskExcess@5"]
 LAMBDAS = [0.0, 0.02, 0.05, 0.1, 0.2, 0.5, 1.0]
 ALPHAS = [1.0, 0.9, 0.8, 0.7, 0.5, 0.3, 0.0]
 COLORS = ["#2a78d6", "#eb6834", "#1baf7a"]  # categorical slots 1-3 (validated default palette)
-
-
-class ScoredRecommender:
-    """Reads saved ranker scores and applies post-processing."""
-
-    def __init__(self, ft, cfg, score_dir: Path, policy: dict, **kw):
-        self.ft, self.cfg, self.dir, self.policy, self.kw = ft, cfg, score_dir, policy, kw
-        self._cache: dict = {}
-
-    def _load(self, cutoff):
-        if cutoff not in self._cache:
-            df = pd.read_parquet(self.dir / f"{cutoff.date()}.parquet")
-            prof = customer_profile_asof(self.ft.customers, cutoff)
-            limit = customer_max_level(prof, pd.Index(df.customerID.unique()), self.policy)
-            fillers = None
-            if self.kw.get("hard"):
-                lvl = asset_risk_levels(self.ft.prices, self.ft.assets, cutoff, self.cfg["risk"]["srri_bounds"])
-                b = self.ft.buys[(self.ft.buys.timestamp < cutoff) & (self.ft.buys.timestamp >= cutoff - pd.Timedelta(days=30))]
-                pop = b.groupby("ISIN").customerID.nunique()
-                fillers = suitable_fillers(lvl, pop)
-            self._cache[cutoff] = (df, limit, fillers)
-        return self._cache[cutoff]
-
-    def __call__(self, ft, cutoff, customers, candidates, k):
-        df, limit, fillers = self._load(cutoff)
-        df = df[df.customerID.isin(customers)]
-        return rerank(df, k, limit, fillers=fillers, **self.kw).reset_index(drop=True)
 
 
 def run_grid(ft, cfg, slices, recs: dict, policy: dict) -> pd.DataFrame:

@@ -5,7 +5,7 @@
 
 Usage:
   python scripts/run_paper_protocol.py --part baselines
-  python scripts/run_paper_protocol.py --part ranker --from 2021-06-01 --to 2022-05-01
+  python scripts/run_paper_protocol.py --part ranker --paper_dates
 """
 from __future__ import annotations
 
@@ -30,6 +30,7 @@ def main():
     ap.add_argument("--part", choices=["baselines", "ranker"], required=True)
     ap.add_argument("--from", dest="start", default="2021-06-01")
     ap.add_argument("--to", dest="end", default="2022-05-01")
+    ap.add_argument("--paper_dates", action="store_true", help="ranker on all 61 bi-weekly dates of the paper")
     args = ap.parse_args()
     cfg = yaml.safe_load(open(ROOT / "configs/base.yaml"))
     ft = load(ROOT / cfg["data"]["raw_dir"])
@@ -38,9 +39,9 @@ def main():
     if args.part == "baselines":
         dates, recs = paper_dates(), base
     else:
-        dates = list(pd.date_range(args.start, args.end, freq="MS"))
+        dates = paper_dates() if args.paper_dates else list(pd.date_range(args.start, args.end, freq="MS"))
         ranker = TwoStageRanker(ft, cfg, "lgbm", cache_dir=ROOT / "data/processed/frames")
-        recs = {**{m: base[m] for m in ["pop_30d", "item_knn"]}, "ranker_lgbm": ranker.recommend_any}
+        recs = {**{m: base[m] for m in ["pop_30d", "item_knn", "als"]}, "ranker_lgbm": ranker.recommend_any}
 
     res = evaluate_paper(ft, dates, recs)
     out = ROOT / "reports" / f"paper_protocol_{args.part}.csv"
