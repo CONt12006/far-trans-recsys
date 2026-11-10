@@ -9,6 +9,7 @@ Group for ranking = (cutoff, customer).
 """
 from __future__ import annotations
 
+import json
 from pathlib import Path
 
 import numpy as np
@@ -39,9 +40,11 @@ class TwoStageRanker:
         # training cutoffs may start earlier than the evaluation range
         self.cuts = all_cutoffs("2019-01-01", s["last_cutoff"], s["freq"])
         self.models: dict = {}
-        self.categories: dict = {}
+        self.categories: dict = {}  # cutoff -> {feature: categories}; one model per cutoff
         self.score_dir = self.cache.parent / f"scores_{backend}"
         self.score_dir.mkdir(parents=True, exist_ok=True)
+        self.model_dir = self.cache.parent / "models"
+        self.model_dir.mkdir(parents=True, exist_ok=True)
 
     # ------------------------------------------------------------ data
     def frame(self, cutoff: pd.Timestamp) -> pd.DataFrame:
@@ -57,7 +60,7 @@ class TwoStageRanker:
     def features(self, df: pd.DataFrame) -> list[str]:
         return [c for c in feature_columns(df) if c not in self.drop]
 
-    def _prep(self, df: pd.DataFrame, fit: bool = False) -> pd.DataFrame:
+    def _prep(self, df: pd.DataFrame, cutoff: pd.Timestamp, fit: bool = False) -> pd.DataFrame:
         X = df[self.features(df)].copy()
         for c in CAT_FEATURES:
             if c not in X:
@@ -66,8 +69,8 @@ class TwoStageRanker:
                 X[c] = X[c].astype(str)
             else:
                 if fit:
-                    self.categories[c] = pd.Index(sorted(X[c].astype(str).unique()))
-                X[c] = pd.Categorical(X[c].astype(str), categories=self.categories[c])
+                    self.categories.setdefault(cutoff, {})[c] = pd.Index(sorted(X[c].astype(str).unique()))
+                X[c] = pd.Categorical(X[c].astype(str), categories=self.categories[cutoff][c])
         return X
 
     @staticmethod
@@ -91,8 +94,12 @@ class TwoStageRanker:
     def fit(self, eval_cutoff: pd.Timestamp):
         if eval_cutoff in self.models:
             return self.models[eval_cutoff]
+        loaded = self._load_model(eval_cutoff)
+        if loaded is not None:
+            self.models[eval_cutoff] = loaded
+            return loaded
         tr, va, train_c, valid_c = self._training_frames(eval_cutoff)
-        Xtr, Xva = self._prep(tr, fit=True), self._prep(va)
+        Xtr, Xva = self._prep(tr, eval_cutoff, fit=True), self._prep(va, eval_cutoff)
         if self.backend == "lgbm":
             import lightgbm as lgb
             m = lgb.LGBMRanker(**self.params)
@@ -112,16 +119,50 @@ class TwoStageRanker:
         print(f"    [{self.backend}] eval {eval_cutoff.date()}: train {train_c[0].date()}..{train_c[-1].date()} "
               f"({len(tr)} rows), valid {valid_c.date()}, best_iter={best}", flush=True)
         self.models[eval_cutoff] = m
+        self._save_model(eval_cutoff, m)
         return m
 
+    # ------------------------------------------------------------ persistence
+    # Models live next to the feature cache (data/processed/models) and are wiped with it,
+    # so a model never outlives the feature code it was trained with.
+    def _model_path(self, cutoff: pd.Timestamp) -> Path:
+        ext = "txt" if self.backend == "lgbm" else "cbm"
+        tag = "" if not self.drop else "_drop" + str(abs(hash(tuple(sorted(self.drop)))) % 10**6)
+        return self.model_dir / f"{self.backend}{tag}_{cutoff.date()}.{ext}"
+
+    def _save_model(self, cutoff, m):
+        path = self._model_path(cutoff)
+        if self.backend == "lgbm":
+            m.booster_.save_model(str(path), num_iteration=m.best_iteration_)
+            cats = {c: list(v) for c, v in self.categories[cutoff].items()}
+            path.with_suffix(".json").write_text(json.dumps(cats, ensure_ascii=False), encoding="utf-8")
+        else:
+            m.save_model(str(path))
+
+    def _load_model(self, cutoff):
+        path = self._model_path(cutoff)
+        if not path.exists():
+            return None
+        if self.backend == "lgbm":
+            import lightgbm as lgb
+            meta = path.with_suffix(".json")
+            if not meta.exists():
+                return None
+            self.categories[cutoff] = {c: pd.Index(v) for c, v in json.loads(meta.read_text(encoding="utf-8")).items()}
+            return lgb.Booster(model_file=str(path))
+        from catboost import CatBoostRanker
+        return CatBoostRanker().load_model(str(path))
+
     def score(self, df: pd.DataFrame, eval_cutoff: pd.Timestamp) -> np.ndarray:
-        return self.fit(eval_cutoff).predict(self._prep(df))
+        model = self.fit(eval_cutoff)
+        return model.predict(self._prep(df, eval_cutoff))
 
     def feature_importance(self, eval_cutoff: pd.Timestamp) -> pd.Series:
         m = self.fit(eval_cutoff)
         if self.backend == "lgbm":
-            imp = m.booster_.feature_importance("gain")
-            names = m.booster_.feature_name()
+            booster = getattr(m, "booster_", m)  # LGBMRanker after training, Booster after loading
+            imp = booster.feature_importance("gain")
+            names = booster.feature_name()
         else:
             imp, names = m.get_feature_importance(type="PredictionValuesChange"), m.feature_names_
         return pd.Series(imp, index=names).sort_values(ascending=False)

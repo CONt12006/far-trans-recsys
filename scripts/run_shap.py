@@ -51,7 +51,7 @@ def main():
     model = rk.fit(cutoff)
     df = rk.frame(cutoff).drop(columns="label")
     df = df.sample(min(args.sample, len(df)), random_state=0)
-    X = rk._prep(df)
+    X = rk._prep(df, cutoff)
     contrib = model.predict(X, pred_contrib=True)[:, :-1]  # last column = expected value
     feats = list(X.columns)
     sv = pd.DataFrame(contrib, columns=feats, index=X.index)
